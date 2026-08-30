@@ -10,7 +10,7 @@
    отдаёт ответ из HTTP-кэша браузера, а GitHub Pages держит HTML десять минут —
    и «сначала сеть» превращается в «сначала вчерашняя сеть». */
 
-const CACHE = 'fit-v6';
+const CACHE = 'fit-v7';
 const FILES = [
   './',
   './index.html',
@@ -29,7 +29,8 @@ const FILES = [
   './js/stats.js',
   './js/timer.js',
   './js/report.js',
-  './js/main.js'
+  './js/main.js',
+  './version.txt'
 ];
 
 self.addEventListener('install', e => {

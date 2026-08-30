@@ -2,6 +2,12 @@
    main.js — навигация и запуск
    ============================================================ */
 
+/* Версия сборки. Меняется вместе с version.txt при каждом деплое —
+   по их расхождению приложение понимает, что открылось старым, и перезагружается.
+   Нужно потому, что самая первая загрузка идёт мимо service worker,
+   прямо из HTTP-кэша браузера, а на GitHub Pages заголовками не поуправляешь. */
+const BUILD = '2026-08-30-4';
+
 let TAB = 'train';
 
 function showTab(t) {
@@ -44,7 +50,7 @@ function boot() {
 
   // офлайн-режим
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js').then(checkUpdate).catch(() => {});
   }
 
   // ежедневный сброс даты в питании при возврате в приложение
@@ -54,6 +60,23 @@ function boot() {
 }
 
 let REPDATE_AUTO = true;
+
+/* Если на сервере лежит сборка новее — перезагружаемся один раз.
+   После регистрации worker-а навигация уже идёт через него, поэтому
+   перезагрузка приносит свежую разметку, а не ту же самую из кэша. */
+async function checkUpdate() {
+  try {
+    const r = await fetch('version.txt?ts=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) return;
+    const v = (await r.text()).trim();
+    if (!v || v === BUILD) return;
+    if (sessionStorage.getItem('fit-upd') === v) return;  // уже пробовали — не зацикливаемся
+    sessionStorage.setItem('fit-upd', v);
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg) { try { await reg.update(); } catch (e) {} }
+    location.reload();
+  } catch (e) { /* нет сети — работаем тем, что есть */ }
+}
 
 /* Telegram SDK подгружаем отдельно — приложение работает и без него */
 function loadTelegram() {
