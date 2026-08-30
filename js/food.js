@@ -1,0 +1,259 @@
+/* ============================================================
+   food.js — дневник питания и счётчик калорий
+   ============================================================ */
+
+let FD_DATE = today();
+const MEALS = [
+  { k: 'breakfast', t: 'Завтрак' },
+  { k: 'lunch',     t: 'Обед' },
+  { k: 'dinner',    t: 'Ужин' },
+  { k: 'snack',     t: 'Перекусы' }
+];
+
+function dayFood(d) { return S.food[d || FD_DATE] || []; }
+function daySum(d) {
+  const s = { kcal: 0, p: 0, f: 0, c: 0 };
+  dayFood(d).forEach(i => { s.kcal += i.kcal; s.p += i.p; s.f += i.f; s.c += i.c; });
+  return s;
+}
+
+function renderFood() {
+  const P = S.profile;
+  const sum = daySum();
+  const left = P.targetKcal - sum.kcal;
+  const pct = Math.min(100, P.targetKcal ? sum.kcal / P.targetKcal * 100 : 0);
+  const over = sum.kcal > P.targetKcal;
+
+  $('#fd-sub').textContent = humanDateFull(FD_DATE);
+  $('#fd-datebtn').textContent = FD_DATE === today() ? 'Сегодня' : humanDate(FD_DATE);
+
+  let html = '';
+
+  /* сводка */
+  html += '<div class="card">' +
+    '<div class="row between" style="align-items:flex-end">' +
+      '<div><div class="tiny">Съедено</div>' +
+      '<div style="font-size:34px;font-weight:700;line-height:1.1;letter-spacing:-1px">' + r0(sum.kcal) + '</div>' +
+      '<div class="small muted">из ' + P.targetKcal + ' ккал</div></div>' +
+      '<div style="text-align:right"><div class="tiny">' + (over ? 'Перебор' : 'Осталось') + '</div>' +
+      '<div style="font-size:24px;font-weight:700;color:' + (over ? 'var(--bad)' : 'var(--ok)') + '">' + r0(Math.abs(left)) + '</div></div>' +
+    '</div>' +
+    '<div class="bar ' + (over ? 'over' : (pct > 80 ? 'ok' : '')) + '" style="margin-top:14px"><i style="width:' + pct + '%"></i></div>' +
+    '<div class="macro">' +
+      macroBox('Белки', sum.p, P.targetP, 'var(--acc4)') +
+      macroBox('Жиры', sum.f, P.targetF, 'var(--acc3)') +
+      macroBox('Углеводы', sum.c, P.targetC, 'var(--acc2)') +
+    '</div>' +
+  '</div>';
+
+  /* приёмы пищи */
+  MEALS.forEach(m => {
+    const items = dayFood().filter(i => i.meal === m.k);
+    const k = items.reduce((n, i) => n + i.kcal, 0);
+    html += '<div class="meal-h"><div class="t">' + m.t + (k ? ' <span class="muted small" style="font-weight:500">· ' + r0(k) + ' ккал</span>' : '') + '</div>' +
+      '<button class="btn sm sec" onclick="openAddFood(\'' + m.k + '\')">+</button></div>';
+    if (!items.length) {
+      html += '<div class="small" style="color:var(--tx3);padding:2px 4px 6px">пусто</div>';
+    }
+    items.forEach(i => {
+      html += '<div class="fi" onclick="editFoodItem(\'' + i.id + '\')">' +
+        '<div class="grow"><div style="font-weight:600;font-size:15px" class="wrap">' + h(i.name) + '</div>' +
+        '<div class="small muted">' + (i.grams ? r0(i.grams) + ' г · ' : '') + 'Б ' + r1(i.p) + ' · Ж ' + r1(i.f) + ' · У ' + r1(i.c) + '</div></div>' +
+        '<div class="k">' + r0(i.kcal) + '</div></div>';
+    });
+  });
+
+  /* неделя */
+  html += '<div class="tiny" style="margin:24px 0 8px 2px">Неделя</div><div class="card">';
+  let wsum = 0, wn = 0;
+  for (let i = 6; i >= 0; i--) {
+    const d = shiftIso(today(), -i);
+    const s = daySum(d);
+    if (s.kcal > 0) { wsum += s.kcal; wn++; }
+    const p = Math.min(100, P.targetKcal ? s.kcal / P.targetKcal * 100 : 0);
+    html += '<div class="row" style="margin-bottom:9px" onclick="gotoDate(\'' + d + '\')">' +
+      '<div class="small muted" style="width:34px;flex:none">' + DOW[fromIso(d).getDay()] + '</div>' +
+      '<div class="bar grow"><i style="width:' + p + '%;background:' + (s.kcal > P.targetKcal ? 'var(--bad)' : 'var(--acc2)') + '"></i></div>' +
+      '<div class="small" style="width:52px;text-align:right;flex:none;font-weight:600">' + (s.kcal ? r0(s.kcal) : '—') + '</div></div>';
+  }
+  html += '<hr class="sep"><div class="row between"><div class="small muted">Среднее за ' + wn + ' ' + plural(wn, 'день', 'дня', 'дней') + '</div>' +
+    '<div style="font-weight:700">' + (wn ? r0(wsum / wn) : '—') + ' ккал</div></div></div>';
+
+  $('#fd-body').innerHTML = html;
+}
+
+function macroBox(t, v, target, color) {
+  return '<div><b style="color:' + color + '">' + r0(v) + '</b><span>' + t + ' / ' + target + '</span></div>';
+}
+
+function gotoDate(d) { FD_DATE = d; renderFood(); }
+
+function openDatePick() {
+  let html = '<h2>Выбери день</h2><div class="chips" style="flex-wrap:wrap;gap:8px">';
+  for (let i = 0; i < 14; i++) {
+    const d = shiftIso(today(), -i);
+    html += '<button class="chip' + (d === FD_DATE ? ' on' : '') + '" onclick="gotoDate(\'' + d + '\');closeSheet()">' + humanDate(d) + '</button>';
+  }
+  html += '</div><div class="field" style="margin-top:16px"><label class="lbl">Другая дата</label>' +
+    '<input type="date" class="inp" value="' + FD_DATE + '" onchange="gotoDate(this.value);closeSheet()"></div>' +
+    '<button class="btn sec" onclick="closeSheet()">Закрыть</button>';
+  sheet(html);
+}
+
+/* ---------- добавление еды ---------- */
+function openAddFood(meal) {
+  sheet(
+    '<h2>Что съела?</h2>' +
+    '<input class="inp" id="fs-q" placeholder="Начни печатать: гречка, творог…" autocomplete="off">' +
+    '<div class="sugbox" id="fs-list"></div>' +
+    '<div class="btn2" style="margin-top:12px">' +
+      '<button class="btn sec" onclick="quickKcal(\'' + meal + '\')">Просто ккал</button>' +
+      '<button class="btn sec" onclick="newCustomFood(\'' + meal + '\')">Своё блюдо</button>' +
+    '</div>',
+    { onOpen: () => {
+        const q = $('#fs-q');
+        let found = [];
+        const draw = () => {
+          found = searchFood(q.value);
+          // имена вставляем только текстом: в onclick они ломались бы на кавычках
+          $('#fs-list').innerHTML = found.length
+            ? found.map((f, k) =>
+                '<div class="sug" data-i="' + k + '">' +
+                '<div class="grow"><div style="font-weight:600;font-size:14.5px" class="wrap">' + h(f.name) + '</div>' +
+                '<div class="small muted">' + f.kcal + ' ккал · Б' + f.p + ' Ж' + f.f + ' У' + f.c + ' / 100 г</div></div>' +
+                '<div style="color:var(--acc);font-size:20px;flex:none">+</div></div>').join('')
+            : '<div class="sug muted small">Ничего не нашлось. Добавь как «своё блюдо».</div>';
+        };
+        $('#fs-list').onclick = ev => {
+          const row = ev.target.closest('[data-i]');
+          if (row) pickFood(found[+row.dataset.i], meal);
+        };
+        q.oninput = draw;
+        draw();
+        setTimeout(() => q.focus(), 250);
+      } }
+  );
+}
+
+/* принимает объект продукта или его название */
+function pickFood(food, meal) {
+  const f = typeof food === 'string' ? allFoods().find(x => x.name === food) : food;
+  if (!f) return;
+  const g = f.portG || 100;
+  sheet2(
+    '<h2 class="wrap">' + h(f.name) + '</h2>' +
+    '<div class="small muted" style="margin:-8px 0 14px">' + f.kcal + ' ккал на 100 г</div>' +
+    '<div class="field"><label class="lbl">Сколько граммов</label>' +
+    '<input class="inp" id="pf-g" inputmode="decimal" value="' + g + '"></div>' +
+    '<div class="chips" id="pf-chips">' +
+      (f.portG ? '<button class="chip" data-g="' + f.portG + '">' + f.portName + ' (' + f.portG + ' г)</button>' : '') +
+      '<button class="chip" data-g="50">50 г</button>' +
+      '<button class="chip" data-g="100">100 г</button>' +
+      '<button class="chip" data-g="150">150 г</button>' +
+      '<button class="chip" data-g="200">200 г</button>' +
+      '<button class="chip" data-g="300">300 г</button>' +
+    '</div>' +
+    '<div class="card" id="pf-calc" style="margin-top:6px"></div>' +
+    '<button class="btn" id="pf-ok">Добавить</button>' +
+    '<button class="btn sec" style="margin-top:8px" onclick="closeSheet2()">Отмена</button>',
+    { onOpen: () => {
+        const gi = $('#pf-g');
+        const calc = () => {
+          const grams = num(gi.value);
+          const k = f.kcal * grams / 100;
+          $('#pf-calc').innerHTML = '<div class="row between"><div><div class="tiny">Итого</div>' +
+            '<div style="font-size:26px;font-weight:700">' + r0(k) + ' <span class="small muted" style="font-weight:500">ккал</span></div></div>' +
+            '<div class="small muted" style="text-align:right">Б ' + r1(f.p * grams / 100) + '<br>Ж ' + r1(f.f * grams / 100) + '<br>У ' + r1(f.c * grams / 100) + '</div></div>';
+        };
+        gi.oninput = calc; calc();
+        $$('#pf-chips .chip').forEach(b => b.onclick = () => { gi.value = b.dataset.g; calc(); });
+        $('#pf-ok').onclick = () => {
+          const grams = num(gi.value);
+          if (!grams) return toast('Укажи граммы');
+          addFoodItem({
+            name: f.name, meal, grams,
+            kcal: f.kcal * grams / 100, p: f.p * grams / 100, f: f.f * grams / 100, c: f.c * grams / 100
+          });
+          rememberFood(f.name);
+          closeSheet2(); closeSheet();
+        };
+      } }
+  );
+}
+
+function quickKcal(meal) {
+  sheet2(
+    '<h2>Просто калории</h2>' +
+    '<p class="muted small" style="margin:-8px 0 14px">Когда точный состав не важен — например, кафе или гости.</p>' +
+    '<div class="field"><label class="lbl">Название</label><input class="inp" id="qk-n" placeholder="Обед в кафе"></div>' +
+    '<div class="field"><label class="lbl">Калории</label><input class="inp" id="qk-k" inputmode="numeric" placeholder="600"></div>' +
+    '<button class="btn" id="qk-ok">Добавить</button>' +
+    '<button class="btn sec" style="margin-top:8px" onclick="closeSheet2()">Отмена</button>',
+    { onOpen: () => {
+        $('#qk-ok').onclick = () => {
+          const k = num($('#qk-k').value);
+          if (!k) return toast('Укажи калории');
+          addFoodItem({ name: $('#qk-n').value.trim() || 'Приём пищи', meal, grams: 0, kcal: k, p: 0, f: 0, c: 0 });
+          closeSheet2(); closeSheet();
+        };
+        setTimeout(() => $('#qk-n').focus(), 250);
+      } }
+  );
+}
+
+function newCustomFood(meal) {
+  sheet2(
+    '<h2>Своё блюдо</h2>' +
+    '<p class="muted small" style="margin:-8px 0 14px">Сохранится в твой список — потом добавляется в один тап.</p>' +
+    '<div class="field"><label class="lbl">Название</label><input class="inp" id="cf-n" placeholder="Мамины сырники"></div>' +
+    '<div class="g2"><div class="field"><label class="lbl">Ккал на 100 г</label><input class="inp" id="cf-k" inputmode="numeric"></div>' +
+    '<div class="field"><label class="lbl">Белки</label><input class="inp" id="cf-p" inputmode="decimal"></div></div>' +
+    '<div class="g2"><div class="field"><label class="lbl">Жиры</label><input class="inp" id="cf-f" inputmode="decimal"></div>' +
+    '<div class="field"><label class="lbl">Углеводы</label><input class="inp" id="cf-c" inputmode="decimal"></div></div>' +
+    '<button class="btn" id="cf-ok">Сохранить и добавить</button>' +
+    '<button class="btn sec" style="margin-top:8px" onclick="closeSheet2()">Отмена</button>',
+    { onOpen: () => {
+        $('#cf-ok').onclick = () => {
+          const name = $('#cf-n').value.trim();
+          const kcal = num($('#cf-k').value);
+          if (!name || !kcal) return toast('Нужны название и калории');
+          const item = { name, kcal, p: num($('#cf-p').value), f: num($('#cf-f').value), c: num($('#cf-c').value), custom: true };
+          S.customFoods.unshift(item);
+          save();
+          closeSheet2();
+          pickFood(name, meal);
+        };
+        setTimeout(() => $('#cf-n').focus(), 250);
+      } }
+  );
+}
+
+function addFoodItem(o) {
+  o.id = uid();
+  if (!S.food[FD_DATE]) S.food[FD_DATE] = [];
+  S.food[FD_DATE].push(o);
+  save(); renderFood(); buzz();
+  toast('+' + r0(o.kcal) + ' ккал');
+}
+
+function editFoodItem(id) {
+  const list = S.food[FD_DATE] || [];
+  const i = list.find(x => x.id === id);
+  if (!i) return;
+  sheet2(
+    '<h2 class="wrap">' + h(i.name) + '</h2>' +
+    '<div class="small muted" style="margin:-8px 0 14px">' + r0(i.kcal) + ' ккал' + (i.grams ? ' · ' + r0(i.grams) + ' г' : '') + '</div>' +
+    '<div class="chips">' + MEALS.map(m => '<button class="chip' + (m.k === i.meal ? ' on' : '') + '" onclick="moveMeal(\'' + id + '\',\'' + m.k + '\')">' + m.t + '</button>').join('') + '</div>' +
+    '<button class="btn dan" style="margin-top:10px" onclick="delFoodItem(\'' + id + '\')">Удалить</button>' +
+    '<button class="btn sec" style="margin-top:8px" onclick="closeSheet2()">Закрыть</button>'
+  );
+}
+function moveMeal(id, meal) {
+  const i = (S.food[FD_DATE] || []).find(x => x.id === id);
+  if (i) { i.meal = meal; save(); renderFood(); closeSheet2(); }
+}
+function delFoodItem(id) {
+  S.food[FD_DATE] = (S.food[FD_DATE] || []).filter(x => x.id !== id);
+  if (!S.food[FD_DATE].length) delete S.food[FD_DATE];
+  save(); renderFood(); closeSheet2(); toast('Удалено');
+}

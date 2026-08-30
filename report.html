@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f7f5f4">
+<title>Отчёт</title>
+<style>
+:root{
+  --bg:#f6f5f7; --card:#ffffff; --line:#e8e6ec; --tx:#191720; --tx2:#6d6a7a; --tx3:#a3a0b0;
+  --acc:#e8506e; --acc2:#2fa887; --acc3:#e0952f; --acc4:#4a7fd4;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--tx);
+  font:400 16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:680px;margin:0 auto;padding:0 18px 60px}
+
+/* header */
+.hero{
+  background:linear-gradient(150deg,#201c2b 0%,#3a2340 55%,#5a2b47 100%);
+  color:#fff;padding:38px 18px 46px;margin-bottom:-26px
+}
+.hero .in{max-width:680px;margin:0 auto}
+.hero .lab{font-size:11.5px;letter-spacing:2px;text-transform:uppercase;opacity:.65;font-weight:700}
+.hero h1{margin:8px 0 4px;font-size:32px;font-weight:700;letter-spacing:-.6px}
+.hero .per{opacity:.8;font-size:15px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:26px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:0 2px 14px rgba(25,23,32,.05)}
+.stat b{display:block;font-size:25px;font-weight:700;letter-spacing:-.5px;line-height:1.2}
+.stat span{font-size:12px;color:var(--tx2)}
+
+h2.sec{
+  font-size:12px;letter-spacing:1.6px;text-transform:uppercase;color:var(--tx3);
+  font-weight:700;margin:34px 0 12px;display:flex;align-items:center;gap:10px
+}
+h2.sec:after{content:"";flex:1;height:1px;background:var(--line)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:12px;box-shadow:0 2px 14px rgba(25,23,32,.05)}
+.wk-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.wk-h .t{font-size:18px;font-weight:700;letter-spacing:-.3px}
+.wk-h .d{font-size:13px;color:var(--tx2);margin-top:2px}
+.tag{font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:99px;background:#f0eef4;color:var(--tx2);white-space:nowrap}
+.tag.g{background:#e4f5ef;color:var(--acc2)}
+.tag.r{background:#fdeaee;color:var(--acc)}
+
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+td{padding:9px 0;border-top:1px solid var(--line);vertical-align:top}
+tr:first-child td{border-top:0}
+td.n{font-weight:600;padding-right:12px}
+td.v{text-align:right;white-space:nowrap;color:var(--tx)}
+td.v .plan{display:block;font-size:11.5px;color:var(--tx3);font-weight:500;margin-top:2px}
+.quote{margin-top:14px;padding:12px 14px;background:#faf9fb;border-left:3px solid var(--acc);border-radius:0 10px 10px 0;font-size:14.5px;color:var(--tx2)}
+
+/* food chart */
+.frow{display:flex;align-items:center;gap:12px;margin-bottom:9px}
+.frow .dd{width:52px;font-size:12.5px;color:var(--tx2);flex:none}
+.frow .bar{flex:1;height:22px;border-radius:7px;background:#f0eef4;overflow:hidden;position:relative}
+.frow .bar i{display:block;height:100%;border-radius:7px;background:var(--acc2)}
+.frow .bar i.over{background:var(--acc)}
+.frow .kk{width:58px;text-align:right;font-size:13px;font-weight:700;flex:none}
+.tgline{position:absolute;top:0;bottom:0;width:2px;background:rgba(25,23,32,.35)}
+.legend{font-size:12px;color:var(--tx3);margin-top:10px}
+
+.mac{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.mac div{background:#faf9fb;border-radius:12px;padding:12px;text-align:center}
+.mac b{display:block;font-size:18px;font-weight:700}
+.mac span{font-size:11.5px;color:var(--tx2)}
+
+.note{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:9px;font-size:15px}
+.foot{text-align:center;color:var(--tx3);font-size:12.5px;margin-top:38px;line-height:1.7}
+.empty{color:var(--tx3);font-size:15px;padding:6px 2px}
+svg.spark{width:100%;height:90px;display:block;margin-top:12px}
+
+@media print{ .hero{background:#201c2b!important;-webkit-print-color-adjust:exact;print-color-adjust:exact} body{background:#fff} }
+</style>
+</head>
+<body>
+<div class="hero"><div class="in">
+  <div class="lab">Отчёт по тренировкам</div>
+  <h1 id="hName">—</h1>
+  <div class="per" id="hPer">—</div>
+</div></div>
+<div class="wrap" id="root"></div>
+
+<script>
+const MONTHS=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const DOW=['вс','пн','вт','ср','чт','пт','сб'];
+const DOWL=['воскресенье','понедельник','вторник','среда','пятница','суббота'];
+function fromIso(s){const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)}
+function r0(n){return Math.round(n)}
+function r1(n){return Math.round(n*10)/10}
+function h(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function nf(n){return r0(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ')}
+function plural(n,a,b,c){n=Math.abs(n)%100;const k=n%10;if(n>10&&n<20)return c;if(k>1&&k<5)return b;if(k===1)return a;return c}
+
+async function decode(raw){
+  const mode=raw[0];
+  let s=raw.slice(1).replace(/-/g,'+').replace(/_/g,'/');
+  while(s.length%4)s+='=';
+  const bin=atob(s);
+  let bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+  if(mode==='z'){
+    const ds=new DecompressionStream('deflate-raw');
+    const w=ds.writable.getWriter(); w.write(bytes); w.close();
+    bytes=new Uint8Array(await new Response(ds.readable).arrayBuffer());
+  }
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+function rangeLabel(from,to){
+  const a=fromIso(from),b=fromIso(to);
+  if(from===to)return a.getDate()+' '+MONTHS[a.getMonth()];
+  const same=a.getMonth()===b.getMonth();
+  return a.getDate()+(same?'':' '+MONTHS[a.getMonth()])+' – '+b.getDate()+' '+MONTHS[b.getMonth()];
+}
+
+function render(d){
+  document.getElementById('hName').textContent=d.n||'Отчёт';
+  document.getElementById('hPer').textContent=rangeLabel(d.from,d.to)+(d.tr?' · тренер: '+d.tr:'');
+  document.title='Отчёт'+(d.n?' — '+d.n:'')+' · '+rangeLabel(d.from,d.to);
+
+  const ton=d.w.reduce((n,x)=>n+(x.ton||0),0);
+  let html='';
+
+  /* статистика */
+  html+='<div class="stats">';
+  html+='<div class="stat"><b>'+d.w.length+'</b><span>'+plural(d.w.length,'тренировка','тренировки','тренировок')+'</span></div>';
+  if(ton)html+='<div class="stat"><b>'+nf(ton)+'</b><span>кг тоннаж</span></div>';
+  if(d.f.length)html+='<div class="stat"><b>'+nf(d.avgK)+'</b><span>ккал в среднем</span></div>';
+  if(d.wt.length)html+='<div class="stat"><b>'+r1(d.wt[d.wt.length-1].kg)+'</b><span>кг сейчас</span></div>';
+  html+='</div>';
+
+  /* тренировки */
+  html+='<h2 class="sec">Тренировки</h2>';
+  if(!d.w.length){
+    html+='<div class="empty">За этот период тренировок не отмечено.</div>';
+  }else{
+    d.w.forEach(s=>{
+      const dd=fromIso(s.d);
+      const hard=/тяжело/.test(s.feel);
+      html+='<div class="card"><div class="wk-h"><div>'+
+        '<div class="t">'+h(s.title)+'</div>'+
+        '<div class="d">'+DOW[dd.getDay()]+', '+dd.getDate()+' '+MONTHS[dd.getMonth()]+(s.mins?' · '+s.mins+' мин':'')+(s.ton?' · '+nf(s.ton)+' кг':'')+'</div>'+
+        '</div>'+(s.feel?'<div class="tag '+(hard?'r':'g')+'">'+h(s.feel)+'</div>':'')+'</div>';
+      html+='<table>';
+      s.ex.forEach(e=>{
+        html+='<tr><td class="n">'+h(e.n)+'</td><td class="v">'+h(e.s)+
+          '<span class="plan">план: '+h(e.p)+'</span></td></tr>';
+      });
+      html+='</table>';
+      if(s.note)html+='<div class="quote">'+h(s.note)+'</div>';
+      html+='</div>';
+    });
+  }
+
+  /* питание */
+  html+='<h2 class="sec">Питание</h2>';
+  if(!d.f.length){
+    html+='<div class="empty">Дневник питания за этот период не заполнялся.</div>';
+  }else{
+    const max=Math.max(d.tg.kcal,...d.f.map(x=>x.kcal))*1.05;
+    const tgPct=d.tg.kcal/max*100;
+    html+='<div class="card">';
+    d.f.forEach(x=>{
+      const dd=fromIso(x.d);
+      const p=x.kcal/max*100;
+      const over=x.kcal>d.tg.kcal;
+      html+='<div class="frow"><div class="dd">'+DOW[dd.getDay()]+' '+dd.getDate()+'.'+String(dd.getMonth()+1).padStart(2,'0')+'</div>'+
+        '<div class="bar"><i class="'+(over?'over':'')+'" style="width:'+p+'%"></i>'+
+        '<div class="tgline" style="left:'+tgPct+'%"></div></div>'+
+        '<div class="kk">'+nf(x.kcal)+'</div></div>';
+    });
+    const dev=d.avgK-d.tg.kcal;
+    html+='<div class="legend">Вертикальная черта — цель '+nf(d.tg.kcal)+' ккал. В среднем '+nf(d.avgK)+' ккал ('+(dev>0?'+':'')+nf(dev)+').</div>';
+    html+='<div class="mac">'+
+      '<div><b style="color:var(--acc4)">'+r0(d.avgP)+'</b><span>белки / '+d.tg.p+' г</span></div>'+
+      '<div><b style="color:var(--acc3)">'+r0(d.avgF)+'</b><span>жиры / '+d.tg.f+' г</span></div>'+
+      '<div><b style="color:var(--acc2)">'+r0(d.avgC)+'</b><span>углеводы / '+d.tg.c+' г</span></div>'+
+      '</div></div>';
+  }
+
+  /* вес */
+  if(d.wt.length){
+    html+='<h2 class="sec">Вес и замеры</h2><div class="card">';
+    const a=d.wt[0],b=d.wt[d.wt.length-1];
+    const dif=b.kg-a.kg;
+    html+='<div class="wk-h"><div><div class="t">'+r1(b.kg)+' кг</div>'+
+      '<div class="d">на '+fromIso(b.d).getDate()+' '+MONTHS[fromIso(b.d).getMonth()]+'</div></div>'+
+      (d.wt.length>1?'<div class="tag '+(dif<=0?'g':'r')+'">'+(dif>0?'+':'')+r1(dif)+' кг</div>':'')+'</div>';
+    if(d.wt.length>1)html+=spark(d.wt.map(x=>x.kg));
+    if(b.ch||b.wa||b.hi){
+      html+='<div class="mac">'+
+        '<div><b>'+(b.ch||'—')+'</b><span>грудь, см</span></div>'+
+        '<div><b>'+(b.wa||'—')+'</b><span>талия, см</span></div>'+
+        '<div><b>'+(b.hi||'—')+'</b><span>бёдра, см</span></div></div>';
+    }
+    html+='</div>';
+  }
+
+  /* заметки */
+  if(d.nt&&d.nt.length){
+    html+='<h2 class="sec">Вопросы и заметки</h2>';
+    d.nt.forEach(t=>html+='<div class="note">'+h(t).replace(/\n/g,'<br>')+'</div>');
+  }
+
+  html+='<div class="foot">Отчёт собран в приложении автоматически.<br>Ссылка содержит только эти данные — ничего не хранится на сервере.</div>';
+  document.getElementById('root').innerHTML=html;
+}
+
+function spark(vals){
+  const w=600,hh=90,pad=10;
+  const min=Math.min(...vals),max=Math.max(...vals),rng=(max-min)||1;
+  const pts=vals.map((v,i)=>{
+    const x=pad+i*(w-pad*2)/(vals.length-1);
+    const y=hh-pad-(v-min)/rng*(hh-pad*2);
+    return x.toFixed(1)+','+y.toFixed(1);
+  });
+  const area='M'+pts[0]+' L'+pts.join(' L')+' L'+(w-pad)+','+(hh-pad)+' L'+pad+','+(hh-pad)+' Z';
+  return '<svg class="spark" viewBox="0 0 '+w+' '+hh+'" preserveAspectRatio="none">'+
+    '<path d="'+area+'" fill="rgba(232,80,110,.10)"/>'+
+    '<polyline points="'+pts.join(' ')+'" fill="none" stroke="var(--acc)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '</svg>';
+}
+
+(async()=>{
+try{
+  const hash=decodeURIComponent(location.hash.slice(1));
+  if(!hash)throw new Error('no data');
+  render(await decode(hash));
+}catch(e){
+  document.getElementById('hName').textContent='Отчёт не открылся';
+  document.getElementById('hPer').textContent='ссылка неполная';
+  document.getElementById('root').innerHTML=
+    '<div class="card"><b>Похоже, ссылку скопировали не целиком.</b>'+
+    '<p style="color:var(--tx2);font-size:15px">Мессенджеры иногда обрезают длинные ссылки. Попроси прислать её ещё раз — лучше отдельным сообщением, без текста вокруг.</p></div>';
+}
+})();
+</script>
+</body>
+</html>
