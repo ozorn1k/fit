@@ -4,9 +4,13 @@
    - разметка, стили и скрипты — сначала сеть, кэш как запасной вариант.
      Иначе после обновления приложение открывалось бы старым до второго запуска.
    - остальное (иконки, манифест) — сначала кэш, так быстрее.
-   Без интернета работает всё равно всё: сеть просто падает, и отдаётся кэш. */
+   Без интернета работает всё равно всё: сеть просто падает, и отдаётся кэш.
 
-const CACHE = 'fit-v5';
+   Важно: запрашиваем код с cache:'no-cache'. Иначе fetch внутри worker-а сам
+   отдаёт ответ из HTTP-кэша браузера, а GitHub Pages держит HTML десять минут —
+   и «сначала сеть» превращается в «сначала вчерашняя сеть». */
+
+const CACHE = 'fit-v6';
 const FILES = [
   './',
   './index.html',
@@ -29,7 +33,11 @@ const FILES = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => c.addAll(FILES.map(u => new Request(u, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', e => {
@@ -41,7 +49,7 @@ self.addEventListener('activate', e => {
 });
 
 function freshFirst(req) {
-  return fetch(req)
+  return fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' })
     .then(res => {
       if (res && res.status === 200) {
         const copy = res.clone();
