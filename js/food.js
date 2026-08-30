@@ -60,6 +60,20 @@ function renderFood() {
     '</div></div>' +
     '<div class="water">' + cups + '</div></div>';
 
+  /* шаги */
+  const st = stepsToday(), stTarget = S.profile.targetSteps || 8000;
+  const stPct = Math.min(100, st / stTarget * 100);
+  html += '<div class="card tap" onclick="openSteps()">' +
+    '<div class="row between" style="align-items:flex-end">' +
+      '<div><div class="tiny">Шаги</div>' +
+      '<div style="font-size:20px;font-weight:700;margin-top:2px">' + nfmt(st) +
+        ' <span class="small muted" style="font-weight:500">/ ' + nfmt(stTarget) + '</span></div></div>' +
+      '<div class="small ' + (st >= stTarget ? '' : 'muted') + '" style="' + (st >= stTarget ? 'color:var(--ok);font-weight:700' : '') + '">' +
+        (st >= stTarget ? 'цель взята' : (st ? 'осталось ' + nfmt(stTarget - st) : 'вписать')) + '</div>' +
+    '</div>' +
+    '<div class="bar ' + (st >= stTarget ? 'ok' : '') + '" style="margin-top:12px"><i style="width:' + stPct + '%"></i></div>' +
+  '</div>';
+
   /* приёмы пищи */
   MEALS.forEach(m => {
     const items = dayFood().filter(i => i.meal === m.k);

@@ -177,7 +177,8 @@ function editTargets() {
       '<div class="field"><label class="lbl">Жиры, г</label><input class="inp inp-num" id="t-f" inputmode="numeric" value="' + P.targetF + '"></div>' +
       '<div class="field"><label class="lbl">Углеводы, г</label><input class="inp inp-num" id="t-c" inputmode="numeric" value="' + P.targetC + '"></div>' +
     '</div>' +
-    '<div class="field"><label class="lbl">Вода в день, мл</label><input class="inp" id="t-w" inputmode="numeric" value="' + (P.targetWater || 2000) + '"></div>' +
+    '<div class="g2"><div class="field"><label class="lbl">Вода в день, мл</label><input class="inp" id="t-w" inputmode="numeric" value="' + (P.targetWater || 2000) + '"></div>' +
+    '<div class="field"><label class="lbl">Шагов в день</label><input class="inp" id="t-s" inputmode="numeric" value="' + (P.targetSteps || 8000) + '"></div></div>' +
     '<button class="btn" id="t-ok">Сохранить</button>' +
     '<button class="btn sec" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
     { onOpen: () => {
@@ -187,6 +188,7 @@ function editTargets() {
           P.targetF = r0(num($('#t-f').value, 55));
           P.targetC = r0(num($('#t-c').value, 180));
           P.targetWater = Math.max(500, r0(num($('#t-w').value, 2000)));
+          P.targetSteps = Math.max(1000, r0(num($('#t-s').value, 8000)));
           save(); closeSheet(); renderMore(); renderFood(); toast('Сохранено');
         };
       } }

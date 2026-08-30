@@ -14,6 +14,7 @@ const DEFAULTS = () => ({
     targetF: 55,
     targetC: 180,
     targetWater: 2000,
+    targetSteps: 8000,
     theme: 'dark'
   },
   programs: [],
@@ -25,6 +26,7 @@ const DEFAULTS = () => ({
   mealTemplates: [],   // сохранённые приёмы пищи: {id, name, items:[]}
   scanned: {},         // кэш штрихкодов: код -> продукт (чтобы работало офлайн)
   water: {},           // дата -> мл
+  steps: {},           // дата -> шаги (вносятся вручную из Samsung Health)
   exNotes: {},         // название упражнения -> личная заметка между тренировками
   recent: [],
   notes: [],
@@ -112,6 +114,7 @@ function humanDateFull(s) {
 }
 function num(v, def) { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : (def === undefined ? 0 : def); }
 function r0(n) { return Math.round(n); }
+function nfmt(n) { return r0(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
 function r1(n) { return Math.round(n * 10) / 10; }
 function plural(n, a, b, c) {
   n = Math.abs(n) % 100;

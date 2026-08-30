@@ -42,6 +42,7 @@ function drawReport() {
     '<div class="card"><div class="row between"><div class="small muted">Тренировок</div><b>' + d.w.length + '</b></div>' +
       '<div class="row between" style="margin-top:8px"><div class="small muted">Дней с питанием</div><b>' + d.f.length + '</b></div>' +
       '<div class="row between" style="margin-top:8px"><div class="small muted">Среднее ккал</div><b>' + (d.avgK ? r0(d.avgK) : '—') + '</b></div>' +
+      (d.st.length ? '<div class="row between" style="margin-top:8px"><div class="small muted">Шагов в среднем</div><b>' + nfmt(d.avgSt) + '</b></div>' : '') +
       (d.wt.length ? '<div class="row between" style="margin-top:8px"><div class="small muted">Вес</div><b>' + r1(d.wt[d.wt.length - 1].kg) + ' кг</b></div>' : '') +
     '</div>' +
 
@@ -87,13 +88,21 @@ function collectReport() {
 
   const wt = S.weights.filter(x => inR(x.date)).map(x => ({ d: x.date, kg: x.kg, ch: x.ch, wa: x.wa, hi: x.hi }));
 
+  const st = Object.keys(S.steps || {}).filter(inR).sort()
+    .map(d => ({ d, n: S.steps[d] })).filter(x => x.n > 0);
+  const avgSt = st.length ? st.reduce((n, x) => n + x.n, 0) / st.length : 0;
+
+  const wa = Object.keys(S.water || {}).filter(inR).map(d => S.water[d]).filter(v => v > 0);
+  const avgWa = wa.length ? wa.reduce((n, v) => n + v, 0) / wa.length : 0;
+
   const nt = S.notes.filter(n => n.pin || (n.ts >= fromIso(from).getTime())).sort((a, b) => b.ts - a.ts).slice(0, 8).map(n => n.text);
 
   return {
     n: S.profile.name || '', tr: S.profile.trainer || '',
-    from, to, w, f, wt, nt,
-    avgK, avgP, avgF, avgC,
-    tg: { kcal: S.profile.targetKcal, p: S.profile.targetP, f: S.profile.targetF, c: S.profile.targetC }
+    from, to, w, f, wt, nt, st,
+    avgK, avgP, avgF, avgC, avgSt, avgWa,
+    tg: { kcal: S.profile.targetKcal, p: S.profile.targetP, f: S.profile.targetF, c: S.profile.targetC,
+          steps: S.profile.targetSteps || 8000, water: S.profile.targetWater || 2000 }
   };
 }
 
@@ -144,6 +153,18 @@ function reportText(d) {
     });
   }
   L.push('');
+
+  if (d.st && d.st.length) {
+    L.push('━━━ АКТИВНОСТЬ ━━━');
+    L.push('Шаги: ' + nfmt(d.avgSt) + ' в среднем при цели ' + nfmt(d.tg.steps));
+    if (d.avgWa) L.push('Вода: ' + (d.avgWa / 1000).toFixed(1) + ' л в среднем');
+    L.push('');
+    d.st.forEach(x => {
+      const dd = fromIso(x.d);
+      L.push('   ' + DOW[dd.getDay()] + ' ' + dd.getDate() + '.' + String(dd.getMonth() + 1).padStart(2, '0') + ' — ' + nfmt(x.n) + ' шагов');
+    });
+    L.push('');
+  }
 
   if (d.wt.length) {
     L.push('━━━ ВЕС ━━━');

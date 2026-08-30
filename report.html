@@ -133,6 +133,7 @@ function render(d){
   html+='<div class="stat"><b>'+d.w.length+'</b><span>'+plural(d.w.length,'тренировка','тренировки','тренировок')+'</span></div>';
   if(ton)html+='<div class="stat"><b>'+nf(ton)+'</b><span>кг тоннаж</span></div>';
   if(d.f.length)html+='<div class="stat"><b>'+nf(d.avgK)+'</b><span>ккал в среднем</span></div>';
+  if(d.st&&d.st.length)html+='<div class="stat"><b>'+nf(d.avgSt)+'</b><span>шагов в среднем</span></div>';
   if(d.wt.length)html+='<div class="stat"><b>'+r1(d.wt[d.wt.length-1].kg)+'</b><span>кг сейчас</span></div>';
   html+='</div>';
 
@@ -183,6 +184,24 @@ function render(d){
       '<div><b style="color:var(--acc3)">'+r0(d.avgF)+'</b><span>жиры / '+d.tg.f+' г</span></div>'+
       '<div><b style="color:var(--acc2)">'+r0(d.avgC)+'</b><span>углеводы / '+d.tg.c+' г</span></div>'+
       '</div></div>';
+  }
+
+  /* активность */
+  if(d.st&&d.st.length){
+    html+='<h2 class="sec">Активность</h2><div class="card">';
+    const mx=Math.max(d.tg.steps,...d.st.map(x=>x.n))*1.05;
+    const tp=d.tg.steps/mx*100;
+    d.st.forEach(x=>{
+      const dd=fromIso(x.d);
+      const p=x.n/mx*100;
+      const hit=x.n>=d.tg.steps;
+      html+='<div class="frow"><div class="dd">'+DOW[dd.getDay()]+' '+dd.getDate()+'.'+String(dd.getMonth()+1).padStart(2,'0')+'</div>'+
+        '<div class="bar"><i style="width:'+p+'%;background:'+(hit?'var(--acc2)':'var(--acc4)')+'"></i>'+
+        '<div class="tgline" style="left:'+tp+'%"></div></div>'+
+        '<div class="kk">'+nf(x.n)+'</div></div>';
+    });
+    html+='<div class="legend">Черта — цель '+nf(d.tg.steps)+' шагов. В среднем '+nf(d.avgSt)+'.'+
+      (d.avgWa?' Вода — '+(d.avgWa/1000).toFixed(1)+' л в день.':'')+'</div></div>';
   }
 
   /* вес */

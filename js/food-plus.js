@@ -228,3 +228,39 @@ async function lookupBarcode(code, meal) {
       'Добавить вручную', () => { closeSheet2(); newCustomFood(meal); });
   }
 }
+
+/* ---------- шаги ----------
+   Samsung Health не отдаёт данные наружу: публичного веб-API у него нет,
+   а Health Connect доступен только нативным приложениям. Поэтому вручную. */
+function stepsToday() { return S.steps[FD_DATE] || 0; }
+
+function setSteps(n) {
+  n = Math.max(0, r0(num(n)));
+  if (n) S.steps[FD_DATE] = n; else delete S.steps[FD_DATE];
+  save(); renderFood(); buzz();
+}
+
+function openSteps() {
+  const cur = stepsToday();
+  sheet2(
+    '<h2>Шаги за ' + h(humanDate(FD_DATE)) + '</h2>' +
+    '<p class="muted small" style="margin:-8px 0 14px">Посмотри цифру в Samsung Health и впиши сюда — автоматически она не подтягивается.</p>' +
+    '<div class="field"><label class="lbl">Сколько шагов</label>' +
+    '<input class="inp" id="st-n" inputmode="numeric" value="' + (cur || '') + '" placeholder="8000"></div>' +
+    '<div class="chips" id="st-add">' +
+      [500, 1000, 2000, 5000].map(n => '<button class="chip" data-n="' + n + '">+' + n + '</button>').join('') +
+    '</div>' +
+    '<button class="btn" id="st-ok">Сохранить</button>' +
+    (cur ? '<button class="btn dan" style="margin-top:8px" id="st-del">Стереть</button>' : '') +
+    '<button class="btn sec" style="margin-top:8px" onclick="closeSheet2()">Отмена</button>',
+    { onOpen: () => {
+        const inp = $('#st-n');
+        $$('#st-add .chip').forEach(b => b.onclick = () => {
+          inp.value = r0(num(inp.value) + +b.dataset.n);
+        });
+        $('#st-ok').onclick = () => { setSteps(inp.value); closeSheet2(); };
+        if (cur) $('#st-del').onclick = () => { setSteps(0); closeSheet2(); };
+        focusLater('#st-n');
+      } }
+  );
+}
