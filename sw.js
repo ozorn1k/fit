@@ -6,7 +6,7 @@
    - остальное (иконки, манифест) — сначала кэш, так быстрее.
    Без интернета работает всё равно всё: сеть просто падает, и отдаётся кэш. */
 
-const CACHE = 'fit-v4';
+const CACHE = 'fit-v5';
 const FILES = [
   './',
   './index.html',
@@ -23,6 +23,7 @@ const FILES = [
   './js/food-plus.js',
   './js/notes.js',
   './js/stats.js',
+  './js/timer.js',
   './js/report.js',
   './js/main.js'
 ];

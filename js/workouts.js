@@ -75,9 +75,10 @@ function renderTrain() {
     '</div>';
   });
 
-  html += '<div class="btn2" style="margin-top:16px">' +
+  html += '<div class="g3" style="margin-top:16px">' +
     '<button class="btn sec" onclick="openRecords()">Рекорды</button>' +
     '<button class="btn sec" onclick="openCalendar()">Календарь</button>' +
+    '<button class="btn sec" onclick="openTimer()">Таймер</button>' +
     '</div>' +
     '<div class="btn2" style="margin-top:10px">' +
     '<button class="btn sec" onclick="openHistory()">История</button>' +
@@ -297,7 +298,8 @@ function drawSession() {
 
   let html = '<h2 style="margin-bottom:4px">' + h(a.dayTitle) + '</h2>' +
     '<div class="small muted" style="margin-bottom:14px">' + sessionProgressText(a) + ' · ' + mins + ' мин</div>' +
-    '<div id="rest-bar"></div>';
+    '<div id="rest-bar"></div>' +
+    '<button class="btn gho sm" style="width:100%;margin-bottom:12px" onclick="openTimer()">Секундомер и таймер</button>';
 
   a.exercises.forEach((e, i) => {
     const done = e.sets.filter(s => s.done).length;

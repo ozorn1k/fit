@@ -30,9 +30,9 @@ function renderFood() {
   let html = '';
 
   /* сводка */
-  html += '<div class="card">' +
+  html += '<div class="card tap" onclick="editTargets()">' +
     '<div class="row between" style="align-items:flex-end">' +
-      '<div><div class="tiny">Съедено</div>' +
+      '<div><div class="tiny">Съедено · изменить цель</div>' +
       '<div style="font-size:34px;font-weight:700;line-height:1.1;letter-spacing:-1px">' + r0(sum.kcal) + '</div>' +
       '<div class="small muted">из ' + P.targetKcal + ' ккал</div></div>' +
       '<div style="text-align:right"><div class="tiny">' + (over ? 'Перебор' : 'Осталось') + '</div>' +
@@ -259,16 +259,68 @@ function addFoodItem(o) {
 
 function editFoodItem(id) {
   const list = S.food[FD_DATE] || [];
-  const i = list.find(x => x.id === id);
-  if (!i) return;
+  const it = list.find(x => x.id === id);
+  if (!it) return;
+
   sheet2(
-    '<h2 class="wrap">' + h(i.name) + '</h2>' +
-    '<div class="small muted" style="margin:-8px 0 14px">' + r0(i.kcal) + ' ккал' + (i.grams ? ' · ' + r0(i.grams) + ' г' : '') + '</div>' +
-    '<div class="chips">' + MEALS.map(m => '<button class="chip' + (m.k === i.meal ? ' on' : '') + '" onclick="moveMeal(\'' + id + '\',\'' + m.k + '\')">' + m.t + '</button>').join('') + '</div>' +
-    '<button class="btn dan" style="margin-top:10px" onclick="delFoodItem(\'' + id + '\')">Удалить</button>' +
-    '<button class="btn sec" style="margin-top:8px" onclick="closeSheet2()">Закрыть</button>'
+    '<h2 class="wrap">' + h(it.name) + '</h2>' +
+    (it.grams
+      ? '<div class="field"><label class="lbl">Граммы (остальное пересчитается само)</label>' +
+        '<input class="inp" id="ef-g" inputmode="decimal" value="' + h(it.grams) + '"></div>'
+      : '') +
+    '<div class="field"><label class="lbl">Калории</label>' +
+    '<input class="inp" id="ef-k" inputmode="decimal" value="' + r0(it.kcal) + '"></div>' +
+    '<div class="g3">' +
+      '<div class="field"><label class="lbl">Белки</label><input class="inp inp-num" id="ef-p" inputmode="decimal" value="' + r1(it.p) + '"></div>' +
+      '<div class="field"><label class="lbl">Жиры</label><input class="inp inp-num" id="ef-f" inputmode="decimal" value="' + r1(it.f) + '"></div>' +
+      '<div class="field"><label class="lbl">Углеводы</label><input class="inp inp-num" id="ef-c" inputmode="decimal" value="' + r1(it.c) + '"></div>' +
+    '</div>' +
+    '<label class="lbl">Приём пищи</label>' +
+    '<div class="chips" id="ef-meals">' +
+      MEALS.map(m => '<button class="chip' + (m.k === it.meal ? ' on' : '') + '" data-m="' + m.k + '">' + m.t + '</button>').join('') +
+    '</div>' +
+    '<button class="btn" id="ef-ok">Сохранить</button>' +
+    '<button class="btn dan" style="margin-top:8px" onclick="delFoodItem(' + jsArg(id) + ')">Удалить</button>' +
+    '<button class="btn sec" style="margin-top:8px" onclick="closeSheet2()">Отмена</button>',
+    { onOpen: () => {
+        let meal = it.meal;
+        const gi = $('#ef-g'), ki = $('#ef-k'), pi = $('#ef-p'), fi = $('#ef-f'), ci = $('#ef-c');
+
+        // при смене граммов тянем за собой калории и БЖУ в той же пропорции
+        if (gi) {
+          const base = { g: num(it.grams) || 100, kcal: it.kcal, p: it.p, f: it.f, c: it.c };
+          gi.oninput = () => {
+            const g = num(gi.value);
+            if (!g) return;
+            const k = g / base.g;
+            ki.value = r0(base.kcal * k);
+            pi.value = r1(base.p * k);
+            fi.value = r1(base.f * k);
+            ci.value = r1(base.c * k);
+          };
+        }
+
+        $$('#ef-meals .chip').forEach(b => b.onclick = () => {
+          $$('#ef-meals .chip').forEach(x => x.classList.remove('on'));
+          b.classList.add('on'); meal = b.dataset.m;
+        });
+
+        $('#ef-ok').onclick = () => {
+          const k = num(ki.value);
+          if (!k && k !== 0) return toast('Укажи калории');
+          if (gi) it.grams = num(gi.value);
+          it.kcal = k;
+          it.p = num(pi.value);
+          it.f = num(fi.value);
+          it.c = num(ci.value);
+          it.meal = meal;
+          save(); renderFood(); closeSheet2(); toast('Сохранено');
+        };
+      } }
   );
 }
+
+
 function moveMeal(id, meal) {
   const i = (S.food[FD_DATE] || []).find(x => x.id === id);
   if (i) { i.meal = meal; save(); renderFood(); closeSheet2(); }
