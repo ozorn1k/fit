@@ -46,12 +46,28 @@ function renderFood() {
     '</div>' +
   '</div>';
 
+  /* вода */
+  const wt = waterToday(), wtarget = S.profile.targetWater || 2000;
+  const glasses = Math.max(4, Math.round(wtarget / 250));
+  let cups = '';
+  for (let i = 0; i < glasses; i++) cups += '<i class="' + (i * 250 < wt ? 'on' : '') + '"></i>';
+  html += '<div class="card"><div class="row between">' +
+    '<div><div class="tiny">Вода</div><div style="font-size:20px;font-weight:700;margin-top:2px">' +
+      (wt / 1000).toFixed(1) + ' <span class="small muted" style="font-weight:500">/ ' + (wtarget / 1000).toFixed(1) + ' л</span></div></div>' +
+    '<div class="row" style="gap:6px">' +
+      '<button class="btn sm sec" onclick="addWater(-250)">-</button>' +
+      '<button class="btn sm sec" onclick="addWater(250)">+ стакан</button>' +
+    '</div></div>' +
+    '<div class="water">' + cups + '</div></div>';
+
   /* приёмы пищи */
   MEALS.forEach(m => {
     const items = dayFood().filter(i => i.meal === m.k);
     const k = items.reduce((n, i) => n + i.kcal, 0);
     html += '<div class="meal-h"><div class="t">' + m.t + (k ? ' <span class="muted small" style="font-weight:500">· ' + r0(k) + ' ккал</span>' : '') + '</div>' +
-      '<button class="btn sm sec" onclick="openAddFood(\'' + m.k + '\')">+</button></div>';
+      '<div class="row" style="gap:6px">' +
+      (items.length ? '<button class="btn sm sec" style="padding:9px 11px" onclick="mealActions(\'' + m.k + '\')">⋯</button>' : '') +
+      '<button class="btn sm sec" onclick="openAddFood(\'' + m.k + '\')">+</button></div></div>';
     if (!items.length) {
       html += '<div class="small" style="color:var(--tx3);padding:2px 4px 6px">пусто</div>';
     }
@@ -106,7 +122,12 @@ function openAddFood(meal) {
     '<h2>Что съела?</h2>' +
     '<input class="inp" id="fs-q" placeholder="Начни печатать: гречка, творог…" autocomplete="off">' +
     '<div class="sugbox" id="fs-list"></div>' +
-    '<div class="btn2" style="margin-top:12px">' +
+    '<button class="btn sec" style="margin-top:12px" onclick="openScanner(\'' + meal + '\')">Сканировать штрихкод</button>' +
+    '<div class="btn2" style="margin-top:8px">' +
+      '<button class="btn sec" onclick="copyMealFrom(\'' + meal + '\')">Как в прошлый раз</button>' +
+      '<button class="btn sec" onclick="openTemplates(\'' + meal + '\')">Мои приёмы</button>' +
+    '</div>' +
+    '<div class="btn2" style="margin-top:8px">' +
       '<button class="btn sec" onclick="quickKcal(\'' + meal + '\')">Просто ккал</button>' +
       '<button class="btn sec" onclick="newCustomFood(\'' + meal + '\')">Своё блюдо</button>' +
     '</div>',
@@ -130,7 +151,7 @@ function openAddFood(meal) {
         };
         q.oninput = draw;
         draw();
-        setTimeout(() => q.focus(), 250);
+        focusLater(q);
       } }
   );
 }
@@ -196,7 +217,7 @@ function quickKcal(meal) {
           addFoodItem({ name: $('#qk-n').value.trim() || 'Приём пищи', meal, grams: 0, kcal: k, p: 0, f: 0, c: 0 });
           closeSheet2(); closeSheet();
         };
-        setTimeout(() => $('#qk-n').focus(), 250);
+        focusLater('#qk-n');
       } }
   );
 }
@@ -223,7 +244,7 @@ function newCustomFood(meal) {
           closeSheet2();
           pickFood(name, meal);
         };
-        setTimeout(() => $('#cf-n').focus(), 250);
+        focusLater('#cf-n');
       } }
   );
 }

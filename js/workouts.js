@@ -76,6 +76,10 @@ function renderTrain() {
   });
 
   html += '<div class="btn2" style="margin-top:16px">' +
+    '<button class="btn sec" onclick="openRecords()">Рекорды</button>' +
+    '<button class="btn sec" onclick="openCalendar()">Календарь</button>' +
+    '</div>' +
+    '<div class="btn2" style="margin-top:10px">' +
     '<button class="btn sec" onclick="openHistory()">История</button>' +
     '<button class="btn sec" onclick="editProgram()">Изменить</button>' +
     '</div>';
@@ -131,7 +135,7 @@ function openImport() {
             else toast('Буфер пуст');
           } catch (e) { toast('Вставь вручную: долгое нажатие в поле'); }
         };
-        setTimeout(() => $('#imp-t').focus(), 250);
+        focusLater('#imp-t');
       } }
   );
 }
@@ -214,6 +218,43 @@ function edDelProgram() {
   });
 }
 
+
+/* Поля подходов заполняем не планом, а тем, что реально было в прошлый раз —
+   так ей не приходится перебивать вес каждую тренировку. */
+function buildSets(e) {
+  const planReps = String(e.reps).match(/\d+/) ? String(e.reps).match(/\d+/)[0] : '';
+  const prev = lastExercise(e.name);
+  const prevDone = prev ? prev.sets.filter(x => x.done) : [];
+  return Array.from({ length: Math.max(1, e.sets) }, (_, i) => {
+    const p = prevDone[i] || prevDone[prevDone.length - 1];
+    return {
+      w: (p && p.w) || e.weight || '',
+      r: (p && p.r) || planReps,
+      done: false
+    };
+  });
+}
+
+/* Подсказка о прогрессии: если прошлый раз всё закрыла и было не тяжело — предложить прибавку */
+function progressHint(name, plan) {
+  const key = name.toLowerCase();
+  let last = null;
+  for (let i = S.sessions.length - 1; i >= 0; i--) {
+    const e = (S.sessions[i].exercises || []).find(x => x.name.toLowerCase() === key);
+    if (e && e.sets.some(x => x.done)) { last = { s: S.sessions[i], e }; break; }
+  }
+  if (!last) return '';
+  const done = last.e.sets.filter(x => x.done);
+  if (done.length < num(last.e.plan.sets, 0)) return '';
+  const planReps = num(String(last.e.plan.reps).match(/\d+/) ? String(last.e.plan.reps).match(/\d+/)[0] : 0);
+  if (planReps && done.some(x => num(x.r) < planReps)) return '';
+  if (last.s.feel === 'тяжело' || last.s.feel === 'очень тяжело') return '';
+  const w = num(done[0].w);
+  if (!w) return '';
+  const step = w < 20 ? 1 : w < 50 ? 2.5 : 5;
+  return 'Прошлый раз закрыла всё' + (last.s.feel === 'легко' ? ' и было легко' : '') + ' → можно взять ' + r1(w + step) + ' кг';
+}
+
 /* ---------- тренировка ---------- */
 function startDay(dayId) {
   const prog = activeProgram();
@@ -231,7 +272,7 @@ function startDay(dayId) {
       date: today(), startedAt: Date.now(),
       exercises: day.exercises.map(e => ({
         name: e.name, plan: { sets: e.sets, reps: e.reps, weight: e.weight }, note: e.note || '', rest: e.rest || 90,
-        sets: Array.from({ length: Math.max(1, e.sets) }, () => ({ w: e.weight || '', r: String(e.reps).match(/\d+/) ? String(e.reps).match(/\d+/)[0] : '', done: false }))
+        sets: buildSets(e)
       }))
     };
     save();
@@ -263,6 +304,10 @@ function drawSession() {
     const all  = done === e.sets.length;
     const prev = lastExercise(e.name);
     const prevTxt = prev ? 'прошлый раз: ' + prev.sets.filter(s => s.done).map(s => (s.w ? s.w + '×' : '') + s.r).join(', ') : '';
+    const myNote = S.exNotes[e.name.toLowerCase()] || '';
+    const hint = done ? '' : progressHint(e.name, e.plan);
+    const tm = String(e.plan.reps).match(/(\d+)\s*(сек|мин)/i);
+    const timed = tm ? (/мин/i.test(tm[2]) ? +tm[1] * 60 : +tm[1]) : 0;
 
     html += '<div class="ex' + (all ? ' done' : '') + (i === firstUndone(a) ? ' open' : '') + '" id="ex-' + i + '">' +
       '<div class="ex-h" onclick="toggleEx(' + i + ')">' +
@@ -275,7 +320,10 @@ function drawSession() {
       '</div>' +
       '<div class="ex-b">' +
         (e.note ? '<div class="small muted" style="padding:10px 0 0">' + h(e.note) + '</div>' : '') +
+        (myNote ? '<div class="small" style="padding:10px 0 0;color:var(--acc3)">📌 ' + h(myNote) + '</div>' : '') +
         (prevTxt ? '<div class="small" style="padding:10px 0 0;color:var(--acc4)">' + h(prevTxt) + '</div>' : '') +
+        (hint ? '<div class="small" style="padding:10px 0 0;color:var(--ok)">↗ ' + h(hint) + '</div>' : '') +
+        (timed ? '<button class="btn sec sm" style="width:100%;margin-top:12px" onclick="startTimed(' + timed + ')">▶ Засечь ' + h(e.plan.reps) + '</button>' : '') +
         '<div class="sethead"><span></span><span>кг</span><span>повторы</span><span></span></div>';
 
     e.sets.forEach((s, si) => {
@@ -325,12 +373,29 @@ function toggleSet(i, si) {
   sub.textContent = e.plan.sets + '×' + e.plan.reps + (e.plan.weight ? ' · ' + e.plan.weight + ' кг' : '') + ' · ' + done + '/' + e.sets.length;
   const top = $('#ses-wrap > .small');
   if (top) top.textContent = sessionProgressText(S.active) + ' · ' + Math.round((Date.now() - S.active.startedAt) / 60000) + ' мин';
-  if (s.done) startRest(e.rest || 90);
+  if (s.done) {
+    if (checkPR(e.name, s.w, s.r)) prFlash(e.name, s.w, s.r);
+    startRest(e.rest || 90);
+  }
+}
+
+/* ---------- личный рекорд ---------- */
+let prT = null;
+function prFlash(name, w, r) {
+  const el = $('#prflash');
+  el.innerHTML = '🏆 Новый рекорд!<small>' + h(name) + ' — ' + h(w) + ' кг × ' + h(r) + '</small>';
+  el.classList.add('on');
+  buzz('heavy');
+  clearTimeout(prT);
+  prT = setTimeout(() => el.classList.remove('on'), 2600);
 }
 
 /* ---------- таймер отдыха ---------- */
 let restT = null;
-function startRest(sec) {
+function startRest(sec) { startCountdown(sec, 'Отдых'); }
+function startTimed(sec) { startCountdown(sec, 'Упражнение'); buzz(); }
+
+function startCountdown(sec, label) {
   clearInterval(restT);
   const bar = $('#rest-bar');
   if (!bar) return;
@@ -338,7 +403,7 @@ function startRest(sec) {
   const paint = () => {
     const m = Math.floor(left / 60), s = left % 60;
     bar.innerHTML = '<div class="card" style="padding:12px 16px;border-color:var(--acc4);background:color-mix(in srgb,var(--acc4) 10%,var(--card))">' +
-      '<div class="row between"><div><div class="tiny" style="color:var(--acc4)">Отдых</div>' +
+      '<div class="row between"><div><div class="tiny" style="color:var(--acc4)">' + label + '</div>' +
       '<div style="font-size:22px;font-weight:700;font-variant-numeric:tabular-nums">' + m + ':' + String(s).padStart(2, '0') + '</div></div>' +
       '<div class="row" style="gap:8px"><button class="btn sm sec" onclick="restAdd(30)">+30с</button>' +
       '<button class="btn sm sec" onclick="stopRest()">Стоп</button></div></div></div>';
@@ -346,7 +411,7 @@ function startRest(sec) {
   paint();
   restT = setInterval(() => {
     left--;
-    if (left <= 0) { stopRest(); beep(); buzz('heavy'); toast('Отдых окончен'); return; }
+    if (left <= 0) { stopRest(); beep(); buzz('heavy'); toast(label === 'Отдых' ? 'Отдых окончен' : 'Время вышло'); return; }
     paint();
   }, 1000);
   window.__restLeft = () => left;

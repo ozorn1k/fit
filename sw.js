@@ -1,5 +1,5 @@
 /* Офлайн-режим: кэшируем всё приложение при первом открытии */
-const CACHE = 'fit-v1';
+const CACHE = 'fit-v3';
 const FILES = [
   './',
   './index.html',
@@ -13,7 +13,9 @@ const FILES = [
   './js/parser.js',
   './js/workouts.js',
   './js/food.js',
+  './js/food-plus.js',
   './js/notes.js',
+  './js/stats.js',
   './js/report.js',
   './js/main.js'
 ];

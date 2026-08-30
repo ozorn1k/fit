@@ -47,7 +47,7 @@ function editNote(id) {
         if (n) $('#nt-del').onclick = () => confirmSheet('Удалить заметку?', '', 'Удалить', () => {
           S.notes = S.notes.filter(x => x.id !== n.id); save(); closeSheet(); renderNotes();
         });
-        setTimeout(() => $('#nt-t').focus(), 250);
+        focusLater('#nt-t');
       } }
   );
 }
@@ -112,9 +112,12 @@ function renderMore() {
     '<div class="btn2"><button class="btn sec" onclick="exportData()">Сохранить копию</button>' +
     '<button class="btn sec" onclick="importData()">Загрузить копию</button></div></div>';
 
-  html += '<div class="card"><div class="row between"><div class="small muted">Тренировок в истории</div><b>' + S.sessions.length + '</b></div>' +
+  const st = streakInfo();
+  html += '<div class="card"><div class="row between"><div class="small muted">Серия дней подряд</div><b>' + st.cur + ' 🔥</b></div>' +
+    '<div class="row between" style="margin-top:8px"><div class="small muted">Тренировок в истории</div><b>' + S.sessions.length + '</b></div>' +
     '<div class="row between" style="margin-top:8px"><div class="small muted">Дней с едой</div><b>' + Object.keys(S.food).length + '</b></div>' +
-    '<div class="row between" style="margin-top:8px"><div class="small muted">Своих продуктов</div><b>' + S.customFoods.length + '</b></div></div>';
+    '<div class="row between" style="margin-top:8px"><div class="small muted">Своих продуктов</div><b>' + S.customFoods.length + '</b></div>' +
+    '<div class="row between" style="margin-top:8px"><div class="small muted">Сохранённых приёмов</div><b>' + S.mealTemplates.length + '</b></div></div>';
 
   html += '<div class="small" style="text-align:center;color:var(--tx3);margin:20px 0 10px">' +
     (TG.on ? 'работает в Telegram' : 'работает офлайн') + '</div>';
@@ -174,6 +177,7 @@ function editTargets() {
       '<div class="field"><label class="lbl">Жиры, г</label><input class="inp inp-num" id="t-f" inputmode="numeric" value="' + P.targetF + '"></div>' +
       '<div class="field"><label class="lbl">Углеводы, г</label><input class="inp inp-num" id="t-c" inputmode="numeric" value="' + P.targetC + '"></div>' +
     '</div>' +
+    '<div class="field"><label class="lbl">Вода в день, мл</label><input class="inp" id="t-w" inputmode="numeric" value="' + (P.targetWater || 2000) + '"></div>' +
     '<button class="btn" id="t-ok">Сохранить</button>' +
     '<button class="btn sec" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
     { onOpen: () => {
@@ -182,6 +186,7 @@ function editTargets() {
           P.targetP = r0(num($('#t-p').value, 110));
           P.targetF = r0(num($('#t-f').value, 55));
           P.targetC = r0(num($('#t-c').value, 180));
+          P.targetWater = Math.max(500, r0(num($('#t-w').value, 2000)));
           save(); closeSheet(); renderMore(); renderFood(); toast('Сохранено');
         };
       } }

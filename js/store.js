@@ -13,6 +13,7 @@ const DEFAULTS = () => ({
     targetP: 110,
     targetF: 55,
     targetC: 180,
+    targetWater: 2000,
     theme: 'dark'
   },
   programs: [],
@@ -21,6 +22,10 @@ const DEFAULTS = () => ({
   sessions: [],
   food: {},
   customFoods: [],
+  mealTemplates: [],   // сохранённые приёмы пищи: {id, name, items:[]}
+  scanned: {},         // кэш штрихкодов: код -> продукт (чтобы работало офлайн)
+  water: {},           // дата -> мл
+  exNotes: {},         // название упражнения -> личная заметка между тренировками
   recent: [],
   notes: [],
   weights: [],
@@ -115,6 +120,11 @@ function plural(n, a, b, c) {
   if (n1 > 1 && n1 < 5) return b;
   if (n1 === 1) return a;
   return c;
+}
+
+/* Автофокус с проверкой: шторку могли закрыть раньше, чем сработает таймер */
+function focusLater(sel) {
+  setTimeout(() => { const e = typeof sel === 'string' ? $(sel) : sel; if (e && e.isConnected) e.focus(); }, 250);
 }
 
 /* ---------- toast ---------- */
