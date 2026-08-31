@@ -2,7 +2,7 @@
    report.js — сборка отчёта тренеру: текст по разделам + ссылка
    ============================================================ */
 
-let REP = { from: null, to: null, preset: 'week' };
+let REP = { from: null, to: null, preset: 'week', excl: [] };   // excl — id тренировок, исключённых из отчёта
 
 function presetRange(p) {
   const t = today();
@@ -20,6 +20,7 @@ function openReport() {
 
 function setPreset(p) {
   REP.preset = p;
+  REP.excl = [];
   const [f, t] = presetRange(p);
   REP.from = f; REP.to = t;
   drawReport();
@@ -46,6 +47,7 @@ function drawReport() {
       (d.wt.length ? '<div class="row between" style="margin-top:8px"><div class="small muted">Вес</div><b>' + r1(d.wt[d.wt.length - 1].kg) + ' кг</b></div>' : '') +
     '</div>' +
 
+    reportSessionList() +
     '<div class="tiny" style="margin:18px 0 8px 2px">Как отправить</div>' +
     '<button class="btn" onclick="sendReportLink()">Ссылка на красивый отчёт</button>' +
     '<button class="btn sec" style="margin-top:8px" onclick="sendReportText()">Текстом в чат</button>' +
@@ -62,7 +64,7 @@ function collectReport() {
   const from = REP.from, to = REP.to;
   const inR = d => d >= from && d <= to;
 
-  const w = S.sessions.filter(s => inR(s.date)).map(s => ({
+  const w = S.sessions.filter(s => inR(s.date) && REP.excl.indexOf(s.id) < 0).map(s => ({
     d: s.date,
     title: s.dayTitle,
     feel: s.feel || '',
@@ -255,4 +257,71 @@ function shareSession(id) {
   const t = L.join('\n');
   if (navigator.share) navigator.share({ text: t }).catch(() => copyText(t));
   else copyText(t);
+}
+
+/* ---------- список тренировок в отчёте ----------
+   Отсюда их можно исключить из отчёта или удалить совсем:
+   ошибку замечаешь как раз здесь, а не в «Истории». */
+function reportSessions() {
+  const list = S.sessions.filter(s => s.date >= REP.from && s.date <= REP.to);
+  const seen = {};
+  list.forEach(s => {
+    const key = s.date + '|' + s.dayTitle;
+    seen[key] = (seen[key] || 0) + 1;
+  });
+  return list
+    .map(s => ({ s, dup: seen[s.date + '|' + s.dayTitle] > 1 }))
+    .sort((a, b) => b.s.date.localeCompare(a.s.date));
+}
+
+function reportSessionList() {
+  const rows = reportSessions();
+  if (!rows.length) return '';
+  const dups = rows.filter(x => x.dup).length;
+
+  let html = '<div class="tiny" style="margin:18px 0 8px 2px">Тренировки в отчёте</div>';
+  if (dups) {
+    html += '<div class="small" style="color:var(--warn);margin:0 2px 8px">' +
+      'Похоже на дубли: за один день записано несколько одинаковых тренировок. Лишние можно убрать.</div>';
+  }
+  html += '<div class="card" style="padding:6px 10px">';
+  rows.forEach(x => {
+    const off = REP.excl.indexOf(x.s.id) >= 0;
+    const sets = x.s.exercises.reduce((n, e) => n + e.sets.filter(y => y.done).length, 0);
+    html += '<div class="row between" style="padding:10px 4px;border-top:1px solid var(--line)">' +
+      '<div class="row grow" style="gap:10px;opacity:' + (off ? '.4' : '1') + '" onclick="toggleExcl(' + jsArg(x.s.id) + ')">' +
+        '<div class="ck-sm' + (off ? '' : ' on') + '">' + (off ? '' : '✓') + '</div>' +
+        '<div class="grow">' +
+          '<div style="font-weight:600;font-size:14.5px" class="wrap">' + h(x.s.dayTitle) +
+            (x.dup ? ' <span class="pill" style="background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)">дубль?</span>' : '') +
+          '</div>' +
+          '<div class="small muted">' + humanDate(x.s.date) + ' · ' + sets + ' ' + plural(sets, 'подход', 'подхода', 'подходов') + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<button class="btn sm dan" style="flex:none;padding:8px 11px" onclick="delFromReport(' + jsArg(x.s.id) + ')">✕</button>' +
+    '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+/* галочка — только исключить из этого отчёта, история не трогается */
+function toggleExcl(id) {
+  const i = REP.excl.indexOf(id);
+  if (i >= 0) REP.excl.splice(i, 1); else REP.excl.push(id);
+  buzz();
+  drawReport();
+}
+
+/* крестик — удалить запись насовсем */
+function delFromReport(id) {
+  const s = S.sessions.find(x => x.id === id);
+  if (!s) return;
+  confirmSheet('Удалить тренировку?',
+    h(s.dayTitle) + ' за ' + humanDate(s.date) + ' исчезнет из истории, рекордов и всех отчётов.',
+    'Удалить насовсем', () => {
+      S.sessions = S.sessions.filter(x => x.id !== id);
+      REP.excl = REP.excl.filter(x => x !== id);
+      save(); renderTrain(); drawReport(); toast('Удалено');
+    });
 }
