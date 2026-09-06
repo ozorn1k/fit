@@ -213,7 +213,7 @@ async function encodePayload(obj) {
 
 async function reportUrl() {
   const base = location.href.split('#')[0].split('?')[0].replace(/[^/]*$/, '');
-  return base + 'report.html#' + await encodePayload(collectReport());
+  return base + 'report.html#' + await encodePayload(packReport(collectReport()));
 }
 
 async function sendReportLink() {
@@ -324,4 +324,26 @@ function delFromReport(id) {
       REP.excl = REP.excl.filter(x => x !== id);
       save(); renderTrain(); drawReport(); toast('Удалено');
     });
+}
+
+/* ---------- плотная упаковка отчёта ----------
+   Данные едут внутри ссылки, поэтому вес payload = длина ссылки.
+   Позиционные массивы вместо объектов и номера дней вместо дат
+   срезают около трети. Средние значения не шлём — страница отчёта
+   считает их сама из тех же чисел. */
+function packReport(d) {
+  const base = fromIso(d.from).getTime();
+  const off = s => Math.round((fromIso(s).getTime() - base) / 86400000);
+  return [
+    2,                                   // версия формата
+    d.n, d.tr, d.from, off(d.to),
+    d.w.map(s => [off(s.d), s.title, s.feel, s.note, s.mins, s.ton,
+                  s.ex.map(e => [e.n, e.p, e.s])]),
+    d.f.map(x => [off(x.d), x.kcal, x.p, x.f, x.c]),
+    d.wt.map(x => [off(x.d), x.kg, x.ch, x.wa, x.hi]),
+    d.st.map(x => [off(x.d), x.n]),
+    d.nt,
+    [d.tg.kcal, d.tg.p, d.tg.f, d.tg.c, d.tg.steps, d.tg.water],
+    r0(d.avgWa)
+  ];
 }

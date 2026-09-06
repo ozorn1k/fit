@@ -113,6 +113,37 @@ async function decode(raw){
   return JSON.parse(new TextDecoder().decode(bytes));
 }
 
+/* Старые ссылки несут объект, новые — плотный массив.
+   Разворачиваем массив обратно и сами считаем средние. */
+function isoOf(base, off){
+  const d=new Date(base+off*86400000);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function avg(arr, pick){ return arr.length ? arr.reduce((n,x)=>n+pick(x),0)/arr.length : 0; }
+
+function unpack(a){
+  if(!Array.isArray(a)) return a;
+  const [, n, tr, from, toOff, W, F, WT, ST, nt, TG, avgWa] = a;
+  const base = fromIso(from).getTime();
+  const d = {
+    n, tr, from, to: isoOf(base, toOff),
+    w: (W||[]).map(s=>({ d:isoOf(base,s[0]), title:s[1], feel:s[2], note:s[3], mins:s[4], ton:s[5],
+                         ex:(s[6]||[]).map(e=>({n:e[0],p:e[1],s:e[2]})) })),
+    f: (F||[]).map(x=>({ d:isoOf(base,x[0]), kcal:x[1], p:x[2], f:x[3], c:x[4] })),
+    wt:(WT||[]).map(x=>({ d:isoOf(base,x[0]), kg:x[1], ch:x[2], wa:x[3], hi:x[4] })),
+    st:(ST||[]).map(x=>({ d:isoOf(base,x[0]), n:x[1] })),
+    nt: nt||[],
+    tg:{ kcal:TG[0], p:TG[1], f:TG[2], c:TG[3], steps:TG[4], water:TG[5] },
+    avgWa: avgWa||0
+  };
+  d.avgK  = avg(d.f, x=>x.kcal);
+  d.avgP  = avg(d.f, x=>x.p);
+  d.avgF  = avg(d.f, x=>x.f);
+  d.avgC  = avg(d.f, x=>x.c);
+  d.avgSt = avg(d.st, x=>x.n);
+  return d;
+}
+
 function rangeLabel(from,to){
   const a=fromIso(from),b=fromIso(to);
   if(from===to)return a.getDate()+' '+MONTHS[a.getMonth()];
@@ -251,7 +282,7 @@ function spark(vals){
 try{
   const hash=decodeURIComponent(location.hash.slice(1));
   if(!hash)throw new Error('no data');
-  render(await decode(hash));
+  render(unpack(await decode(hash)));
 }catch(e){
   document.getElementById('hName').textContent='Отчёт не открылся';
   document.getElementById('hPer').textContent='ссылка неполная';
