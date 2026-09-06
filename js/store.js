@@ -15,6 +15,7 @@ const DEFAULTS = () => ({
     targetC: 180,
     targetWater: 2000,
     targetSteps: 8000,
+    shortUrl: '',       // адрес Cloudflare Worker для коротких ссылок, пусто = длинные
     theme: 'dark'
   },
   programs: [],

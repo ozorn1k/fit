@@ -103,6 +103,15 @@ function renderMore() {
     '<div class="field" style="margin-bottom:0"><label class="lbl">Имя тренера</label><input class="inp" value="' + h(P.trainer) + '" placeholder="для подписи в отчёте" oninput="S.profile.trainer=this.value;save()"></div>' +
     '</div>';
 
+  html += '<div class="card">' +
+    '<div class="tiny" style="margin-bottom:8px">Короткие ссылки</div>' +
+    '<div class="small muted" style="margin-bottom:10px">Пусто — ссылка на отчёт длинная (~700 символов), но работает всегда. ' +
+    'Вставь адрес своего Cloudflare Worker — станет короткой.</div>' +
+    '<input class="inp" value="' + h(P.shortUrl || '') + '" placeholder="https://fit-report.xxx.workers.dev" ' +
+    'oninput="S.profile.shortUrl=this.value.trim();save()">' +
+    (P.shortUrl ? '<button class="btn sec sm" style="width:100%;margin-top:10px" onclick="testShortLink()">Проверить связь</button>' : '') +
+    '</div>';
+
   html += '<div class="card tap" onclick="toggleTheme()"><div class="row between">' +
     '<div>Тема</div><div class="muted">' + (P.theme === 'light' ? 'светлая' : 'тёмная') + '</div></div></div>';
 
@@ -238,4 +247,14 @@ function importData() {
     rd.readAsText(f);
   };
   inp.click();
+}
+
+/* Проверка, что Worker для коротких ссылок отвечает */
+async function testShortLink() {
+  toast('Проверяю…');
+  const probe = await shortLink('x#' + 'test' + Date.now().toString(36));
+  if (probe) confirmSheet('Связь есть', 'Короткие ссылки работают. Пример: ' + probe, 'Понятно', () => {});
+  else confirmSheet('Не отвечает',
+    'Проверь адрес и что Worker развёрнут. Пока он молчит, отчёт уходит длинной ссылкой — это не поломка.',
+    'Понятно', () => {});
 }

@@ -217,8 +217,13 @@ async function reportUrl() {
 }
 
 async function sendReportLink() {
-  const url = await reportUrl();
-  if (url.length > 3800) {
+  const long = await reportUrl();
+  const short = await shortLink(long);
+  const url = short || long;
+
+  if (!short && S.profile.shortUrl) toast('Короткая ссылка не вышла — отправляю обычную');
+
+  if (!short && url.length > 3800) {
     return confirmSheet('Период слишком большой',
       'Столько данных не помещается в одну ссылку — мессенджер её обрежет. Выбери период короче, например неделю.',
       'Понятно', () => {});
@@ -346,4 +351,33 @@ function packReport(d) {
     [d.tg.kcal, d.tg.p, d.tg.f, d.tg.c, d.tg.steps, d.tg.water],
     r0(d.avgWa)
   ];
+}
+
+/* ---------- короткие ссылки ----------
+   Если в профиле указан адрес Worker-а, отправляем ему упакованный отчёт
+   и получаем короткий код. Нет адреса, нет интернета, Worker молчит —
+   молча возвращаемся к длинной ссылке, ничего не ломая. */
+async function shortLink(longUrl) {
+  const base = (S.profile.shortUrl || '').trim().replace(/\/+$/, '');
+  if (!base) return null;
+
+  const payload = longUrl.split('#')[1];
+  if (!payload) return null;
+
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 7000);
+    const r = await fetch(base + '/s', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: payload,
+      signal: ctrl.signal
+    });
+    clearTimeout(timer);
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d && d.url ? d.url : null;
+  } catch (e) {
+    return null;
+  }
 }
