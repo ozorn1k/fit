@@ -15,7 +15,7 @@ const DEFAULTS = () => ({
     targetC: 180,
     targetWater: 2000,
     targetSteps: 8000,
-    shortUrl: '',       // адрес Cloudflare Worker для коротких ссылок, пусто = длинные
+    shortUrl: 'https://fit-report.karmannyy.workers.dev',   // Worker коротких ссылок
     theme: 'dark'
   },
   programs: [],
@@ -45,6 +45,8 @@ function load() {
       const p = JSON.parse(raw);
       S = Object.assign(DEFAULTS(), p);
       S.profile = Object.assign(DEFAULTS().profile, p.profile || {});
+      // в старых копиях поле пустое: подставляем адрес по умолчанию
+      if (!S.profile.shortUrl) S.profile.shortUrl = DEFAULTS().profile.shortUrl;
     }
   } catch (e) {
     console.warn('load failed', e);

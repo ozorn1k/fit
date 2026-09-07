@@ -105,8 +105,8 @@ function renderMore() {
 
   html += '<div class="card">' +
     '<div class="tiny" style="margin-bottom:8px">Короткие ссылки</div>' +
-    '<div class="small muted" style="margin-bottom:10px">Пусто — ссылка на отчёт длинная (~700 символов), но работает всегда. ' +
-    'Вставь адрес своего Cloudflare Worker — станет короткой.</div>' +
+    '<div class="small muted" style="margin-bottom:10px">Ссылка тренеру получается короткой (~45 символов) через свой сервис. ' +
+    'Если очистить поле, отчёт будет уходить длинной ссылкой — она работает всегда, даже без интернета.</div>' +
     '<input class="inp" value="' + h(P.shortUrl || '') + '" placeholder="https://fit-report.xxx.workers.dev" ' +
     'oninput="S.profile.shortUrl=this.value.trim();save()">' +
     (P.shortUrl ? '<button class="btn sec sm" style="width:100%;margin-top:10px" onclick="testShortLink()">Проверить связь</button>' : '') +

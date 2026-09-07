@@ -2,8 +2,7 @@ name = "fit-report"
 main = "src/index.js"
 compatibility_date = "2026-01-01"
 
-# Хранилище коротких ссылок.
-# id подставится командой:  npx wrangler kv namespace create REPORTS
+# Хранилище коротких ссылок (создано командой: npx wrangler kv namespace create REPORTS)
 [[kv_namespaces]]
 binding = "REPORTS"
-id = "ЗАМЕНИТЬ_НА_ID_ИЗ_КОМАНДЫ_ВЫШЕ"
+id = "9cfed437485446a4a1a6bf2c4a4bd1d6"
